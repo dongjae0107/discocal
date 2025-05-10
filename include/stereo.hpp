@@ -20,6 +20,7 @@
 #include "utils.h"
 
 using namespace std;
+namespace fs = std::filesystem;
 
 typedef pair<se3,bool> ext;
 
@@ -46,6 +47,7 @@ vector<pair<se3,bool>> StereoCalibration::calExtrinsic(YAML::Node args, int came
     try{
         YAML::Node camera_node = args["cameras"][camera_index];
         string img_dir = camera_node["img_dir"].as<string>();
+        if(img_dir.back()!='/') img_dir = img_dir+"/";
         int n_d = camera_node["n_d"].as<int>();
         bool cal_intrinsic = false;
         if(camera_node["cal_intrinsic"]) cal_intrinsic= camera_node["cal_intrinsic"].as<bool>();
@@ -64,8 +66,6 @@ vector<pair<se3,bool>> StereoCalibration::calExtrinsic(YAML::Node args, int came
         YAML::Node option_node = args["options"];
         int max_scene = 0;
         if(option_node["max_scene"]) max_scene= option_node["max_scene"].as<int>();
-        bool visualize = true;
-        if(option_node["visualize"]) visualize= option_node["visualize"].as<bool>();
         bool save_pose = false;
         if( option_node["save_pose"]) save_pose = option_node["save_pose"].as<bool>();
         bool save_rpe= false;
@@ -85,11 +85,22 @@ vector<pair<se3,bool>> StereoCalibration::calExtrinsic(YAML::Node args, int came
         }
         sort(imgs.begin(),imgs.end());
         if(max_scene==0) max_scene = imgs.size();
+        string results_path = img_dir+"detection_results/";
+        mkdir(results_path);
 
-        TargetDetector detector(n_x, n_y,visualize);
+        TargetDetector detector(n_x, n_y);
         Calibrator calibrator = Calibrator(n_x,n_y,n_d,r,distance,max_scene,img_dir);
         vector<bool> valid_scene; 
 
+        struct timeval  tv;
+        double begin, end;
+        gettimeofday(&tv, NULL);
+        begin = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000 ;
+        const int LEN = 20;
+        const char bar = '=';
+        const char blank = ' ';
+
+        vector<int> fail_img_list;
         for(int i=0; i<imgs.size();i++){
             if(i==max_scene) break;
             string path = imgs[i];
@@ -97,17 +108,27 @@ vector<pair<se3,bool>> StereoCalibration::calExtrinsic(YAML::Node args, int came
             bgr_img = cv::imread(path, cv::IMREAD_COLOR);
             gray_img = TargetDetector::preprocessing(bgr_img,detection_mode);
             if(gray_img.rows == 0) throw exception();
-            cout<<"start detect: "<<path<<endl;
             pair<bool,vector<Shape>> result = detector.detect(gray_img, type);
+            detector.save_result(results_path+std::to_string(i)+".png");
             valid_scene.push_back(result.first);
             if(result.first){
                 calibrator.inputTarget(result.second);
+                print_process(i+1,max_scene,"Detecting image: ");
             }
-            else {
-                cout<<path<<": detection failed"<<endl;
+            else{
+                fail_img_list.push_back(i);
             }
 
         }
+        cout << "\nDetection fail img list: [";
+        for(int i: fail_img_list){
+            cout  << i<<" ";
+        }
+        gettimeofday(&tv, NULL);
+        end = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000 ;
+        double duration =(end - begin) / 1000;
+        printf("], Runtime: %.2fs\n", duration);
+        cout << "Detection results are saved at: img_dir/detection_results/"<<endl;
 
         // 0: moment, 1: conic, 2: point, 4: numerical, 5: iterative
         int mode = 0;

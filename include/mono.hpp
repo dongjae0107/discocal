@@ -22,6 +22,7 @@
 
 using namespace std;
 
+
 class MonoCalibration{
 public:
     MonoCalibration(){};
@@ -29,55 +30,15 @@ public:
 
     // template <typename T>
     // vector<T> split(string str, char Delimiter);
-
-    void print_process(int count, int MAX, string prefix="");
-
     void mono_calibration(YAML::Node node);
 };
-
-// template <typename T>
-// vector<T> MonoCalibration::split(string str, char Delimiter) {
-//     istringstream iss(str);
-//     string buffer;
-
-//     vector<T> result;
-
-//     while (getline(iss, buffer, Delimiter)) {
-//         std::stringstream value(buffer);
-//         T d;
-//         value >> d;
-//         result.push_back(d);
-//     }
-
-//     return result;
-// }
-
-void MonoCalibration::print_process(int count, int MAX, string prefix){
-    const char bar = '='; // 프로그레스바 문자  
-	const char blank = ' '; // 비어있는 프로그레스바 문자  
-	// const int MAX = 20; // 프로그레스바 길이  
-	int i; // 반복문 전용 변수  
-	int bar_count; // 프로그레스바 갯수 저장 변수  
-	float percent; // 퍼센트 저장 변수  
-    printf("\r%s%d/%d [", prefix.c_str(),count, MAX); // 진행 상태 출력  
-    percent = (float)count/MAX*100; // 퍼센트 계산  
-    bar_count = count; // 프로그레스바 갯수 계산  
-    for(i=0; i<MAX; i++) { // LEN길이의 프로그레스바 출력  
-        if(bar_count > i) { // 프로그레스바 길이보다 i가 작으면 
-            printf("%c", bar);
-        } else { // i가 더 커지면  
-            printf("%c", blank);
-        }
-    }
-    printf("] %0.2f%%", percent); // 퍼센트 출력  
-    cout<<flush;
-}
 
 void MonoCalibration::mono_calibration(YAML::Node node){
     // argparsing
 
     YAML::Node camera_node = node["camera"];
     string img_dir = camera_node["img_dir"].as<string>();
+    if(img_dir.back()!='/') img_dir = img_dir+"/";
     int n_d = camera_node["n_d"].as<int>();
     string detection_mode = camera_node["detection_mode"].as<string>();
 
@@ -91,8 +52,6 @@ void MonoCalibration::mono_calibration(YAML::Node node){
     YAML::Node option_node =node["options"];
     int max_scene = 0;
     if(option_node["max_scene"]) max_scene= option_node["max_scene"].as<int>();
-    bool visualize = true;
-    if(option_node["visualize"]) visualize= option_node["visualize"].as<bool>();
     bool save_pose = false;
     if( option_node["save_pose"]) save_pose = option_node["save_pose"].as<bool>();
     bool save_rpe= false;
@@ -111,13 +70,16 @@ void MonoCalibration::mono_calibration(YAML::Node node){
         string path = split<string>(s,'/').back();
         // if (path.find(type) == string::npos) continue;
         if(check_img_path(path)){
-                imgs.push_back(s);
+            imgs.push_back(s);
         }
     }
     sort(imgs.begin(),imgs.end());
     if(max_scene==0) max_scene=imgs.size();
+    string results_path = img_dir+"detection_results/";
+    mkdir(results_path);
 
-    TargetDetector detector(n_x, n_y,visualize);
+
+    TargetDetector detector(n_x, n_y);
     pair<bool,vector<Shape>> result;
     int count=0;
     Calibrator calibrator = Calibrator(n_x,n_y,n_d,r,distance,max_scene,img_dir);
@@ -143,17 +105,14 @@ void MonoCalibration::mono_calibration(YAML::Node node){
             throw exception();
         }
 
-        if(visualize) cout<<"start detect: "<<path<<endl;
         result = detector.detect(gray_img, type);
+        detector.save_result(results_path+std::to_string(i)+".png");
         
         if(result.first){
             calibrator.inputTarget(result.second);
-            
             print_process(i+1,max_scene,"Detecting image: ");
-
         }
         else{
-            if(visualize) cout<<path<<": detection failed"<<endl;
             fail_img_list.push_back(i);
         }
 
@@ -167,6 +126,8 @@ void MonoCalibration::mono_calibration(YAML::Node node){
     end = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000 ;
     double duration =(end - begin) / 1000;
     printf("], Runtime: %.2fs\n", duration);
+
+    cout << "Detection results are saved at: img_dir/detection_results/"<<endl;
     
     Params final_params;
 

@@ -38,5 +38,4 @@ cameras:
     d4: 0
 
 options:
-  save_results_path : "../"
-  visualize : true
+  save_results_path : "../sample_imgs/rgb12/"

@@ -29,15 +29,17 @@ class WrongTypeException: public std::exception{
 
 class TargetDetector{
     public:
-        TargetDetector(int n_x, int n_y, bool draw = true);
+        TargetDetector(int n_x, int n_y);
         pair<bool,vector<Shape>>detect(cv::Mat& img, string type);
         static cv::Mat preprocessing(cv::Mat img, string detection_mode);
         static cv::Mat translation_blur(const cv::Mat &img, double trans);
         static cv::Mat rotation_blur(const cv::Mat &img, double dtheta);
+        void save_result(string path);
 
     private:
         double numerical_stable;
         bool draw;
+        cv::Mat detection_result;
         int n_x, n_y;
         int size_threshold;
         float drawing_scale;
@@ -57,8 +59,6 @@ class TargetDetector{
 
         void visualize_result(cv::Mat& img_output, pair<bool,vector<Shape>> &result);
 
-        //for exp
-        bool detect_circles_banilar(cv::Mat& img, cv::Mat& img_output,vector<Shape>&target, bool debug);
         
 };
 #endif

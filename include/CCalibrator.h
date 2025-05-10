@@ -105,9 +105,6 @@ class Calibrator{
         Eigen::VectorXd get_absolute_conic();
         Eigen::MatrixXd normalize_matrix(Eigen::MatrixXd matrix);
         
-
-        // for exp
-        void update_control_point(std::vector<int> real_sample, Params results);
 };
 
 struct CalibrationFunctor {
