@@ -128,7 +128,7 @@ vector<pair<se3,bool>> StereoCalibration::calExtrinsic(YAML::Node args, int came
         end = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000 ;
         double duration =(end - begin) / 1000;
         printf("], Runtime: %.2fs\n", duration);
-        cout << "Detection results are saved at: img_dir/detection_results/"<<endl;
+        cout << "Detection results are saved at: "+results_path<<endl;
 
         // 0: moment, 1: conic, 2: point, 4: numerical, 5: iterative
         int mode = 0;

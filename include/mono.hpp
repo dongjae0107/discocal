@@ -127,7 +127,7 @@ void MonoCalibration::mono_calibration(YAML::Node node){
     double duration =(end - begin) / 1000;
     printf("], Runtime: %.2fs\n", duration);
 
-    cout << "Detection results are saved at: img_dir/detection_results/"<<endl;
+    cout << "Detection results are saved at: "+results_path<<endl;
     
     Params final_params;
 
