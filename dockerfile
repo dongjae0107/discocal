@@ -34,3 +34,23 @@ RUN mkdir /temp/ceres-bin && cd /temp/ceres-bin && cmake ../ceres-solver-2.2.0 &
 ##install yaml-cpp
 RUN cd /temp && git clone https://github.com/jbeder/yaml-cpp.git && cd yaml-cpp/ && mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr/local ../ && make && make install
 
+RUN pip3 install pyinstaller
+
+# 5) 프로젝트 복사 및 빌드
+WORKDIR /app
+COPY . .
+
+RUN mkdir build && cd build \
+  && cmake .. \
+  && make -j$(nproc)
+
+# 6) PyInstaller로 run_calib 번들링
+RUN pyinstaller \
+    --onefile \
+    --add-binary "build/pydiscocal.cpython-38-x86_64-linux-gnu.so:." \
+    runfiles/run_mono.py
+
+	RUN pyinstaller \
+    --onefile \
+    --add-binary "build/pydiscocal.cpython-38-x86_64-linux-gnu.so:." \
+    runfiles/run_stereo.py
