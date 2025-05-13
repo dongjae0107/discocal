@@ -4,4 +4,8 @@ services:
     build: .
     volumes:
       - ./outputs:/output
-    command:  cp -r /app/dist/. /output
+    command:  >
+      sh -c "
+        cp -r /app/dist/. /output &&
+        chmod +x /output/*
+      "
